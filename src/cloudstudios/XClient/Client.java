@@ -13,23 +13,29 @@ public class Client {
 		this.device = device;
 		try {
 			socket = new Socket(ip,10001);
+			int in = 0,out = 0;
 			Command cmd;
 			
-			//load input channels
-			cmd = new Command(true,"%nI0");
+			cmd = new Command(true,"%SU0");
 			cmd.setDevice(this.device);
 			socket.getOutputStream().write(cmd.getBytes());
-			cmd = new Command(socket);
-			for(int i = 0; i < cmd.getData(); i++){
-				inputchannels.add(new Channel(socket,this.device,true,i));
+			while(true){
+				cmd = new Command(socket);
+				String c = cmd.getCommand();
+				if(c.equals("%SU0")){
+					break;
+				}else if(c.equals("%nI0")){
+					in = cmd.getData();
+				}else if(c.equals("%nO0")){
+					out = cmd.getData();
+				}
 			}
 			
-			//load output channels
-			cmd = new Command(true,"%nO0");
-			cmd.setDevice(this.device);
-			socket.getOutputStream().write(cmd.getBytes());
-			cmd = new Command(socket);
-			for(int i = 0; i < cmd.getData(); i++){
+
+			for(int i = 0; i < in; i++){
+				inputchannels.add(new Channel(socket,this.device,true,i));
+			}
+			for(int i = 0; i < out; i++){
 				outputchannels.add(new Channel(socket,this.device,true,i));
 			}
 		} catch (Exception e) {

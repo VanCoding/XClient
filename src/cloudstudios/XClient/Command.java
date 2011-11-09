@@ -95,13 +95,23 @@ public class Command {
 		return (int)bytes.get(find((byte)0x09)+1) == 0x20;
 	}
 	
+	public String getDataString(){
+		String out = "";
+		String map = "_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz-<>?,./~!@#$%^&*()=+';";
+		int i = find((byte)0x10,(byte)0x18);
+		int l = bytes.get(i++)-0x10+1;
+		for(int j = i; j < i+l; j++){
+			out += map.charAt((int)bytes.get(j)-0x20);
+		}
+		return out;
+	}
 	
 	public int getData(){
 		int out = 0;
 		int i = find((byte)0x10,(byte)0x18);
 		int l = bytes.get(i++)-0x10+1;
 		for(int j = i; j < i+l; j++){
-			out += bytes.get(j)-0x20 *Math.pow(96, l-(j-i));
+			out += ((char)(byte)bytes.get(j)-(int)0x20 *Math.pow(96, j-i));
 		}
 		return out;
 	}
