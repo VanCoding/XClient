@@ -1,64 +1,72 @@
 package cloudstudios.XClient;
 
-import java.net.Socket;
 
 public class Channel {
-	private Socket connection;
-	private int device;
+	private Client device;
 	private boolean input;
 	private int channel;
+	private ChannelEventReceiver eventreceiver;
   
 	boolean mute;
 	int delay;
   
   
-	public Channel(Socket connection,int device, boolean input, int channel){
-		this.connection = connection;
+	public Channel(Client device,boolean input, int channel){
 		this.device = device;
 		this.input = input;
 		this.channel = channel;
 	
+		
+	}
+	
+	public void LoadSettings(){
 		Get("MUT0");
 		Get("DLY3");
 	}
   
-
-	public void Set(String cmd, int data){
-		Execute(new Command(cmd,data));
+	public boolean getInput(){
+		return input;
 	}
-	public void Get(String cmd){
-		Execute(new Command(true,cmd));
+	public int getNumber(){
+		return channel;
 	}
-	public void Execute(Command cmd){
-		try {
-			cmd.setDevice(device);
-			cmd.setChannel(input, channel);
-			this.connection.getOutputStream().write(cmd.getBytes());
-      
-			cmd = new Command(this.connection);
-			String c = cmd.getCommand();
-			int d = cmd.getData();
-      
-			if(c.equals("MUT0")){
-				mute = d==0?false:true;
-			}else if(c.equals("DLY3")){
-				delay = d;
-			} 
-		} catch (Exception e) {
-		}
+	
+	public void setMute(boolean mute){
+		this.mute = mute;
+		Set("MUT0",mute?1:0);
+		eventreceiver.OnMuteChanged();
 	}
-    
-  
-	public void setMute(boolean on){
-		Set("MUT0",on?1:0);   
+	public void setMuteAsync(boolean mute){
+		device.async(Client.MUTE, mute);
 	}
 	public boolean getMute(){
 		return mute;
 	}
+	
 	public void setDelay(int val){
+		this.delay = val;
 		Set("DLY3",val);
+		eventreceiver.OnDelayChanged();
+	}
+	public void setDelayAsync(int val) {
+		device.async(Client.DELAY);
 	}
 	public int getDelay(){
 		return delay;
+	}	
+
+	public void Set(String command, int data){
+		device.write(new Command(device,this,command,data));
+		device.read();
+	}
+	public void Get(String command){
+		device.write(new Command(device,this,command));
+		Command c = device.read();
+		String s = c.getCommand();
+		if(s.equals("MUT0")){
+			mute = c.getData()==1?true:false;
+		}else if(s.equals("DLY3")){
+			delay = c.getData();			
+		}
 	}
 }
