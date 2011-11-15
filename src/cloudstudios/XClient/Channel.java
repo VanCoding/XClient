@@ -7,7 +7,7 @@ public class Channel {
 	private int channel;
 	private ChannelEventReceiver eventreceiver;
   
-	boolean mute;
+	boolean mute = true;
 	int delay;
   
   
@@ -34,10 +34,12 @@ public class Channel {
 	public void setMute(boolean mute){
 		this.mute = mute;
 		Set("MUT0",mute?1:0);
-		eventreceiver.OnMuteChanged();
+		if(eventreceiver != null){
+			eventreceiver.OnMuteChanged();
+		}
 	}
 	public void setMuteAsync(boolean mute){
-		device.async(Client.MUTE, mute);
+		device.async(Client.MUTE, this, mute);
 	}
 	public boolean getMute(){
 		return mute;
@@ -46,10 +48,12 @@ public class Channel {
 	public void setDelay(int val){
 		this.delay = val;
 		Set("DLY3",val);
-		eventreceiver.OnDelayChanged();
+		if(eventreceiver != null){
+			eventreceiver.OnDelayChanged();
+		}
 	}
 	public void setDelayAsync(int val) {
-		device.async(Client.DELAY);
+		device.async(Client.DELAY,val);
 	}
 	public int getDelay(){
 		return delay;

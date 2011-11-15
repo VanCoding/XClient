@@ -3,12 +3,12 @@ package cloudstudios.XClient;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class Client extends Thread {
+public class Client {
 	private ClientEventReceiver eventreceiver;
 	private ArrayList<Channel> inputchannels = new ArrayList<Channel>();
 	private ArrayList<Channel> outputchannels = new ArrayList<Channel>();
-	private ArrayList<Integer> codes = new ArrayList<Integer>();
-	private ArrayList<Object[]> arguments = new ArrayList<Object[]>();
+	private Worker worker = null;
+
 	private int number;
 	private String ip;
 	private Socket socket;
@@ -20,7 +20,6 @@ public class Client extends Thread {
 	public Client(String ip, int number) {
 		this.ip = ip;
 		this.number = number;
-		start();
 	}
 	
 	public void setEventReceiver(ClientEventReceiver eventreceiver){
@@ -64,44 +63,29 @@ public class Client extends Thread {
 	}
 	
 	public void async(int code, Object...args){
-		codes.add(code);
-		arguments.add(args);
+		if(worker == null || !worker.isAlive()){
+			worker = new Worker(code,args);
+		}else{
+			worker.add(code,args);
+		}
 	}
 	
 	public void connectAsync(){
 		async(CONNECT);
 	}
 	
-	public void run(){
-		while(true){
-			if(codes.size() > 0){
-				Object[] args = arguments.get(0);
-				int code = codes.get(0);
-				codes.remove(0);
-				arguments.remove(0);
-				switch(code){
-				case CONNECT:
-					connect();
-					break;
-				case MUTE:
-					((Channel)args[0]).setMute((Boolean)args[1]);
-					break;
-				case DELAY:
-					((Channel)args[0]).setDelay((Integer)args[1]);
-					break;
-				}				
-			}else{
-				try {
-					sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+
 	
 	public int getNumber(){
 		return number;
+	}
+	
+	public Channel getChannel(int i){
+		if(i < inputchannels.size()){
+			return getInputChannel(i);
+		}else{
+			return getOutputChannel(i-inputchannels.size());
+		}
 	}
 	
 	public Channel getInputChannel(int i){
@@ -109,6 +93,10 @@ public class Client extends Thread {
 	}
 	public Channel getOutputChannel(int i){
 		return outputchannels.get(i);
+	}
+	
+	public int getChannelCount(){
+		return getInputChannelCount()+getOutputChannelCount();
 	}
 	public int getInputChannelCount(){
 		return inputchannels.size();
@@ -261,7 +249,38 @@ public class Client extends Thread {
 		return find(bytes,min,min);
 	}
 	
-	
+	private class Worker extends Thread{
+		private ArrayList<Integer> codes = new ArrayList<Integer>();
+		private ArrayList<Object[]> arguments = new ArrayList<Object[]>();
+		
+		public Worker(int code, Object[] args){
+			add(code,args);
+			start();
+		}
+		public void add(int code, Object[] args){
+			codes.add(code);
+			arguments.add(args);	
+		}
+		public void run(){
+			while(codes.size() > 0){
+				Object[] args = arguments.get(0);
+				int code = codes.get(0);
+				codes.remove(0);
+				arguments.remove(0);
+				switch(code){
+					case CONNECT:
+						connect();
+						break;
+					case MUTE:
+						((Channel)args[0]).setMute((Boolean)args[1]);
+						break;
+					case DELAY:
+						((Channel)args[0]).setDelay((Integer)args[1]);
+						break;
+				}
+			}
+		}
+	}
 	
 	
 }
