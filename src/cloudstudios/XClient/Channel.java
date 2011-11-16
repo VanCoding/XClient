@@ -1,5 +1,7 @@
 package cloudstudios.XClient;
 
+import android.util.Log;
+
 
 public class Channel {
 	private Client device;
@@ -9,19 +11,18 @@ public class Channel {
   
 	boolean mute = true;
 	int delay;
-  
+	int level;
   
 	public Channel(Client device,boolean input, int channel){
 		this.device = device;
 		this.input = input;
-		this.channel = channel;
-	
-		
+		this.channel = channel;		
 	}
 	
 	public void LoadSettings(){
 		Get("MUT0");
 		Get("DLY3");
+		Get("LVL0");
 	}
   
 	public boolean getInput(){
@@ -53,12 +54,26 @@ public class Channel {
 		}
 	}
 	public void setDelayAsync(int val) {
-		device.async(Client.DELAY,val);
+		device.async(Client.DELAY,this,val);
 	}
 	public int getDelay(){
 		return delay;
-	}	
-
+	}
+	
+	public void setLevel(int val){
+		this.level = val;
+		Set("LVL0",val);
+		if(eventreceiver != null){
+			eventreceiver.OnLevelChanged();
+		}
+	}
+	public void setLevelAsync(int val){
+		device.async(Client.LEVEL,this,val);
+	}
+	
+	public int getLevel(){
+		return level;
+	}
 	public void Set(String command, int data){
 		device.write(new Command(device,this,command,data));
 		device.read();
@@ -67,10 +82,13 @@ public class Channel {
 		device.write(new Command(device,this,command));
 		Command c = device.read();
 		String s = c.getCommand();
+		Log.d("abc", "Set "+s+" to "+c.getData());
 		if(s.equals("MUT0")){
-			mute = c.getData()==1?true:false;
+			mute = c.getData()==1?true:false;			
 		}else if(s.equals("DLY3")){
 			delay = c.getData();			
+		}else if(s.equals("LVL0")){
+			level = c.getData();
 		}
 	}
 }

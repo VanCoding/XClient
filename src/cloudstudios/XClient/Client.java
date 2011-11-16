@@ -16,6 +16,7 @@ public class Client {
 	public static final int CONNECT = 0;
 	public static final int MUTE = 1;
 	public static final int DELAY = 2;
+	public static final int LEVEL = 3;
 	
 	public Client(String ip, int number) {
 		this.ip = ip;
@@ -47,13 +48,12 @@ public class Client {
 			
 			for(int i = 0; i < in; i++){
 				inputchannels.add(new Channel(this,true,i));
-			}
-			for(int i = 0; i < in; i++){
 				inputchannels.get(i).LoadSettings();
 			}
+
 			for(int i = 0; i < out; i++){
 				outputchannels.add(new Channel(this,false,i));
-				//outputchannels.get(outputchannels.size()-1).LoadSettings();
+				outputchannels.get(i).LoadSettings();
 			}
 			
 			eventreceiver.OnConnect();
@@ -227,7 +227,7 @@ public class Client {
 		if(i >= 0){
 			int l = bytes.get(i++)-0x10+1;
 			for(int j = i; j < i+l; j++){
-				out += ((char)(byte)bytes.get(j)-(int)0x20 *Math.pow(96, j-i));
+				out += ((int)(char)(byte)bytes.get(j)-(int)0x20) *Math.pow(96, l-(j-i)-1);
 			}
 			command.setData(out);
 		}
@@ -276,6 +276,9 @@ public class Client {
 						break;
 					case DELAY:
 						((Channel)args[0]).setDelay((Integer)args[1]);
+						break;
+					case LEVEL:
+						((Channel)args[0]).setLevel((Integer)args[1]);
 						break;
 				}
 			}
