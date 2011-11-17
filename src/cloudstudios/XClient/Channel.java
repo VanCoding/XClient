@@ -10,8 +10,9 @@ public class Channel {
 	private ChannelEventReceiver eventreceiver;
   
 	boolean mute = true;
-	int delay = 0;
 	int level = 0;
+	int delay = 0;	
+	int gain = 0;
   
 	public Channel(Client device,boolean input, int channel){
 		this.device = device;
@@ -46,21 +47,6 @@ public class Channel {
 	public boolean getMute(){
 		return mute;
 	}
-	
-	public void setDelay(int val){
-		this.delay = val;
-		Set("DLY3",val);
-		if(eventreceiver != null){
-			eventreceiver.OnDelayChanged();
-		}
-	}
-	public void setDelayAsync(int val) {
-		device.async(Client.AsyncAction.Delay,this,val);
-	}
-	public int getDelay(){
-		return delay;
-	}
-	
 	public void setLevel(int val){
 		this.level = val;
 		Set("LVL0",val);
@@ -75,6 +61,34 @@ public class Channel {
 	public int getLevel(){
 		return level;
 	}
+	public void setDelay(int val){
+		this.delay = val;
+		Set("DLY3",val);
+		if(eventreceiver != null){
+			eventreceiver.OnDelayChanged();
+		}
+	}
+	public void setDelayAsync(int val) {
+		device.async(Client.AsyncAction.Delay,this,val);
+	}
+	public int getDelay(){
+		return delay;
+	}
+	public void setGain(int val){
+		this.gain = val;
+		Set("MIC0",val);
+		if(eventreceiver != null){
+			eventreceiver.OnGainChanged();
+		}
+	}
+	public void setGainAsync(int val) {
+		device.async(Client.AsyncAction.Gain,this,val);
+	}
+	public int getGain(){
+		return gain;
+	}
+	
+	
 	public void Set(String command, int data){
 		device.write(new Command(device,this,command,data));
 		device.read();

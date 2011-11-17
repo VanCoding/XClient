@@ -20,8 +20,9 @@ public class Client {
 	public enum AsyncAction{
 		Connect,
 		Mute,
-		Delay,
-		Level
+		Level,
+		Gain,
+		Delay		
 	}
 	
 	public Client(String ip, int number) {
@@ -345,12 +346,16 @@ public class Client {
 					case Mute:
 						((Channel)args[0]).setMute((Boolean)args[1]);
 						break;
-					case Delay:
-						((Channel)args[0]).setDelay((Integer)args[1]);
-						break;
 					case Level:
 						((Channel)args[0]).setLevel((Integer)args[1]);
 						break;
+					case Delay:
+						((Channel)args[0]).setDelay((Integer)args[1]);
+						break;
+					case Gain:
+						((Channel)args[0]).setGain((Integer)args[1]);
+						break;
+					
 				}
 			}
 		}
