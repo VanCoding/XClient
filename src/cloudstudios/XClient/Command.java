@@ -6,6 +6,7 @@ public class Command {
 	private Client device = null;
 	private Channel channel = null;
 	private int data = -1;
+	private String aux = "";
 	
 	public Command(){
 	}
@@ -19,6 +20,10 @@ public class Command {
 	}
 	public Command(Client device, Channel channel, String command, int data){
 		this(device,channel,command);
+		setData(data);
+	}
+	public Command(Client device, String command, int data){
+		this(device,command);
 		setData(data);
 	}
 	
@@ -46,5 +51,11 @@ public class Command {
 	}
 	public int getData(){
 		return data;
+	}
+	public String getAux(){
+		return aux;
+	}
+	public void setAux(String aux){
+		this.aux = aux;
 	}
 }

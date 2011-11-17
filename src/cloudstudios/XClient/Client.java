@@ -3,20 +3,26 @@ package cloudstudios.XClient;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import android.util.Log;
+
 public class Client {
 	private ClientEventReceiver eventreceiver;
 	private ArrayList<Channel> inputchannels = new ArrayList<Channel>();
 	private ArrayList<Channel> outputchannels = new ArrayList<Channel>();
+	private ArrayList<String> programs = new ArrayList<String>();
 	private Worker worker = null;
 
 	private int number;
 	private String ip;
 	private Socket socket;
+	private String name;
 	
-	public static final int CONNECT = 0;
-	public static final int MUTE = 1;
-	public static final int DELAY = 2;
-	public static final int LEVEL = 3;
+	public enum AsyncAction{
+		Connect,
+		Mute,
+		Delay,
+		Level
+	}
 	
 	public Client(String ip, int number) {
 		this.ip = ip;
@@ -30,7 +36,7 @@ public class Client {
 	public void connect(){
 		try {
 			socket = new Socket(ip,10001);
-			int in = 0,out = 0;
+			int in = 0,out = 0,programcount = 0;
 			
 			write(new Command(this,"%SU0"));
 			while(true){
@@ -42,18 +48,38 @@ public class Client {
 					in = cmd.getData();
 				}else if(c.equals("%nO0")){
 					out = cmd.getData();
+				}else if(c.equals("%ND0")){
+					name = mapDecode(cmd.getAux());
+					Log.d("abc", name);
+				}else if(c.equals("%PN0")){
+					int p = cmd.getData();
+					programcount++;
+					
+					int add = 0;
+					if(programs.size() < programcount){
+						add = programcount-programs.size();
+					}
+					if(programs.size() < p+1){
+						add = (p+1)-programs.size();
+					}
+					for(int i = 0; i < add; i++){
+						programs.add("");
+					}
+					programs.set(p, mapDecode(cmd.getAux()));
 				}
 			}
 			
 			
 			for(int i = 0; i < in; i++){
 				inputchannels.add(new Channel(this,true,i));
-				inputchannels.get(i).LoadSettings();
 			}
 
 			for(int i = 0; i < out; i++){
 				outputchannels.add(new Channel(this,false,i));
-				outputchannels.get(i).LoadSettings();
+			}
+			
+			for(int i = 0; i < getProgramCount(); i++){
+				Log.d("abc",getProgram(i));
 			}
 			
 			eventreceiver.OnConnect();
@@ -61,8 +87,8 @@ public class Client {
 			eventreceiver.OnError(e.getMessage());
 		}		
 	}
-	
-	public void async(int code, Object...args){
+
+	public void async(AsyncAction code, Object...args){
 		if(worker == null || !worker.isAlive()){
 			worker = new Worker(code,args);
 		}else{
@@ -71,7 +97,7 @@ public class Client {
 	}
 	
 	public void connectAsync(){
-		async(CONNECT);
+		async(AsyncAction.Connect);
 	}
 	
 
@@ -103,6 +129,21 @@ public class Client {
 	}
 	public int getOutputChannelCount(){
 		return outputchannels.size();
+	}
+	
+	public int getProgramCount(){
+		return programs.size();
+	}
+	public String getProgram(int i){
+		return programs.get(i);
+	}
+	public void saveProgram(int program){
+		write(new Command(this,"%PS0",program));
+		read();
+	}
+	public void loadProgram(int program){
+		write(new Command(this,"%PR0",program));
+		read();
 	}
 	
 	public void write(Command command){
@@ -232,12 +273,27 @@ public class Client {
 			command.setData(out);
 		}
 		
+		//read aux
+		i = 0;
+		String aux = "";
+		while(true){
+			i = find(bytes,(byte)0x0b,i+1);
+			if(i > 0){
+				aux += ((char)((byte)bytes.get(i+3)-(byte)0x20));
+			}else{
+				break;
+			}
+		}
+		if(aux.length() > 0){
+			command.setAux(aux);
+		}
+		
 		return command;
 	}
 
 	
-	private int find(ArrayList<Byte> bytes, byte min, byte max){
-		for(int i = 0; i < bytes.size(); i++){
+	private int find(ArrayList<Byte> bytes, byte min, byte max, int start){
+		for(int i = start; i < bytes.size(); i++){
 			byte b = bytes.get(i);
 			if(b >= min && b <= max){
 				return i;
@@ -245,39 +301,54 @@ public class Client {
 		}
 		return -1;
 	}
+	private int find(ArrayList<Byte> bytes, byte min, byte max){
+		return find(bytes,min,max,0);
+	}
 	private int find(ArrayList<Byte> bytes, byte min){
-		return find(bytes,min,min);
+		return find(bytes,min,min,0);
+	}
+	private int find(ArrayList<Byte> bytes, byte min, int start){
+		return find(bytes,min,min,start);
+	}
+	
+	private String mapDecode(String s){
+		String result = "";
+		String map = "_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz-<>?,./~!@#$%^&*()=+';";
+		for(int i = 0; i < s.length(); i++){
+			result += map.charAt(s.charAt(i));
+		}
+		return result.replace("_", " ");
 	}
 	
 	private class Worker extends Thread{
-		private ArrayList<Integer> codes = new ArrayList<Integer>();
+		private ArrayList<AsyncAction> codes = new ArrayList<AsyncAction>();
 		private ArrayList<Object[]> arguments = new ArrayList<Object[]>();
 		
-		public Worker(int code, Object[] args){
+		public Worker(AsyncAction code, Object[] args){
 			add(code,args);
 			start();
 		}
-		public void add(int code, Object[] args){
+		public void add(AsyncAction code, Object[] args){
 			codes.add(code);
 			arguments.add(args);	
 		}
 		public void run(){
 			while(codes.size() > 0){
 				Object[] args = arguments.get(0);
-				int code = codes.get(0);
+				AsyncAction code = codes.get(0);
 				codes.remove(0);
 				arguments.remove(0);
 				switch(code){
-					case CONNECT:
+					case Connect:
 						connect();
 						break;
-					case MUTE:
+					case Mute:
 						((Channel)args[0]).setMute((Boolean)args[1]);
 						break;
-					case DELAY:
+					case Delay:
 						((Channel)args[0]).setDelay((Integer)args[1]);
 						break;
-					case LEVEL:
+					case Level:
 						((Channel)args[0]).setLevel((Integer)args[1]);
 						break;
 				}

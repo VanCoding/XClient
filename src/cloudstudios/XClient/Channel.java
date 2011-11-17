@@ -10,8 +10,8 @@ public class Channel {
 	private ChannelEventReceiver eventreceiver;
   
 	boolean mute = true;
-	int delay;
-	int level;
+	int delay = 0;
+	int level = 0;
   
 	public Channel(Client device,boolean input, int channel){
 		this.device = device;
@@ -19,11 +19,12 @@ public class Channel {
 		this.channel = channel;		
 	}
 	
-	public void LoadSettings(){
+	public void load(){
 		Get("MUT0");
 		Get("DLY3");
 		Get("LVL0");
 	}
+
   
 	public boolean getInput(){
 		return input;
@@ -40,7 +41,7 @@ public class Channel {
 		}
 	}
 	public void setMuteAsync(boolean mute){
-		device.async(Client.MUTE, this, mute);
+		device.async(Client.AsyncAction.Mute, this, mute);
 	}
 	public boolean getMute(){
 		return mute;
@@ -54,7 +55,7 @@ public class Channel {
 		}
 	}
 	public void setDelayAsync(int val) {
-		device.async(Client.DELAY,this,val);
+		device.async(Client.AsyncAction.Delay,this,val);
 	}
 	public int getDelay(){
 		return delay;
@@ -68,7 +69,7 @@ public class Channel {
 		}
 	}
 	public void setLevelAsync(int val){
-		device.async(Client.LEVEL,this,val);
+		device.async(Client.AsyncAction.Level,this,val);
 	}
 	
 	public int getLevel(){
