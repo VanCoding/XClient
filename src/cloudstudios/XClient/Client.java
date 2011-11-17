@@ -88,20 +88,21 @@ public class Client {
 			eventreceiver.OnError(e.getMessage());
 		}		
 	}
-
-	public void async(AsyncAction code, Object...args){
-		if(worker == null || !worker.isAlive()){
-			worker = new Worker(code,args);
-		}else{
-			worker.add(code,args);
-		}
-	}
 	
 	public void connectAsync(){
 		async(AsyncAction.Connect);
 	}
 	
+	public void disconnect(){
+		try {
+			socket.close();
+		} catch (Exception e) {
+		}
+	}
 
+	
+	
+	
 	
 	public int getNumber(){
 		return number;
@@ -319,6 +320,15 @@ public class Client {
 			result += map.charAt(s.charAt(i));
 		}
 		return result.replace("_", " ");
+	}
+	
+	
+	public void async(AsyncAction code, Object...args){
+		if(worker == null || !worker.isAlive()){
+			worker = new Worker(code,args);
+		}else{
+			worker.add(code,args);
+		}
 	}
 	
 	private class Worker extends Thread{
