@@ -1,31 +1,21 @@
 package cloudstudios.XClient;
 
-import android.util.Log;
-
-
-public class Channel {
+public class Channel{
 	private Client device;
 	private boolean input;
 	private int channel;
-	private ChannelEventReceiver eventreceiver;
-  
-	boolean mute = true;
-	int level = 0;
-	int delay = 0;	
-	int gain = 0;
+	
+	private DataField[] fields = new DataField[CommandType.ChannelName.ordinal()+1];
   
 	public Channel(Client device,boolean input, int channel){
 		this.device = device;
 		this.input = input;
-		this.channel = channel;		
+		this.channel = channel;
+		
+		for(int i = 0; i < fields.length; i++){
+			fields[i] = new DataField(CommandType.values()[i]);
+		}
 	}
-	
-	public void load(){
-		Get("MUT0");
-		Get("DLY3");
-		Get("LVL0");
-	}
-
   
 	public boolean getInput(){
 		return input;
@@ -34,76 +24,44 @@ public class Channel {
 		return channel;
 	}
 	
-	public void setMute(boolean mute){
-		this.mute = mute;
-		Set("MUT0",mute?1:0);
-		if(eventreceiver != null){
-			eventreceiver.OnMuteChanged();
-		}
+	public Client getClient(){
+		return device;
 	}
-	public void setMuteAsync(boolean mute){
-		device.async(Client.AsyncAction.Mute, this, mute);
+	
+	public String getName(){
+		return getField(CommandType.ChannelName).getString();
 	}
+	public void setName(String name){
+		//todo
+	}
+	
 	public boolean getMute(){
-		return mute;
+		return getField(CommandType.Mute).getValue() == 1;
 	}
-	public void setLevel(int val){
-		this.level = val;
-		Set("LVL0",val);
-		if(eventreceiver != null){
-			eventreceiver.OnLevelChanged();
-		}
-	}
-	public void setLevelAsync(int val){
-		device.async(Client.AsyncAction.Level,this,val);
+	public void setMute(boolean mute){
+		device.write(new Command(device,this,CommandType.Mute,mute?1:0));
 	}
 	
 	public int getLevel(){
-		return level;
+		return getField(CommandType.SignalLevel).getValue();
 	}
-	public void setDelay(int val){
-		this.delay = val;
-		Set("DLY3",val);
-		if(eventreceiver != null){
-			eventreceiver.OnDelayChanged();
-		}
+	public void setLevel(int level){
+		device.write(new Command(device,this,CommandType.SignalLevel,level));
 	}
-	public void setDelayAsync(int val) {
-		device.async(Client.AsyncAction.Delay,this,val);
-	}
+	
 	public int getDelay(){
-		return delay;
+		return getField(CommandType.SignalDelay).getValue();
 	}
-	public void setGain(int val){
-		this.gain = val;
-		Set("MIC0",val);
-		if(eventreceiver != null){
-			eventreceiver.OnGainChanged();
-		}
-	}
-	public void setGainAsync(int val) {
-		device.async(Client.AsyncAction.Gain,this,val);
-	}
-	public int getGain(){
-		return gain;
+	public void setDelay(int delay){
+		device.write(new Command(device,this,CommandType.SignalDelay,delay));
 	}
 	
-	
-	public void Set(String command, int data){
-		device.write(new Command(device,this,command,data));
-		device.read();
-	}
-	public void Get(String command){
-		device.write(new Command(device,this,command));
-		Command c = device.read();
-		String s = c.getCommand();
-		Log.d("abc", "Set "+s+" to "+c.getData());
-		if(s.equals("MUT0")){
-			mute = c.getData()==1?true:false;			
-		}else if(s.equals("DLY3")){
-			delay = c.getData();			
-		}else if(s.equals("LVL0")){
-			level = c.getData();
+	public DataField getField(CommandType type){
+		for(int i = 0; i < fields.length; i++){
+			if(fields[i].getType() == type){
+				return fields[i];
+			}
 		}
+		return null;
 	}
 }
